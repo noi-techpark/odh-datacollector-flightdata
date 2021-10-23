@@ -1,21 +1,29 @@
 package net.gappc.flightdata;
 
 import org.apache.camel.builder.RouteBuilder;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import org.apache.camel.component.paho.mqtt5.PahoMqtt5Constants;
 
+import javax.enterprise.context.ApplicationScoped;
+import javax.sql.DataSource;
+
+@ApplicationScoped
 public class MqttRoutes extends RouteBuilder {
+
+    private final DataSourceProvider dataSourceProvider;
+
+    public MqttRoutes(DataSourceProvider dataSourceProvider) {
+        this.dataSourceProvider = dataSourceProvider;
+    }
 
     @Override
     public void configure() throws Exception {
-        DynamoDbClient client = DynamoDbClient.builder().credentialsProvider(DefaultCredentialsProvider.create()).build();
-        bindToRegistry("client", client);
+        DataSource dataSource = dataSourceProvider.setupDataSource();
+        bindToRegistry("flightdata", dataSource);
+
         from("paho-mqtt5:#")
-                .process(new ItemProcessor())
-//                .tracing()
+                .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
+                .setBody(simple("insert into flightdata(topic, body) values (:?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
-//                .to("aws2-ddb://mqtt-test?region=AWS_REGION&accessKey=AWS_ACCESS_KEY_ID&secretKey=AWS_SECRET_ACCESS_KEY")
-                .to("aws2-ddb://mqtt-test?amazonDDBClient=#client");
-//                .to("stream:out");
+                .to("jdbc:flightdata?useHeadersAsParameters=true");
     }
 }
