@@ -1,6 +1,6 @@
 # Flightdata
 
-This project contains sources and tools to record flight data via [MQTT](https://mqtt.org/) and to store it in [DynamoDB](https://aws.amazon.com/dynamodb/).
+This project contains sources and tools to record flight data via [MQTT](https://mqtt.org/) and to store it in a [PostgreSQL](https://www.postgresql.org/) database.
 
 ## Table of Contents
 
@@ -11,7 +11,8 @@ This project contains sources and tools to record flight data via [MQTT](https:/
 ## General architecture
 
 - a [mosquitto](https://mosquitto.org/) instance listens for sensor data, the MQTT protocol is used
-- a [Apache Camel](https://camel.apache.org/) instance listens for data on mosquitto and writes it into DynamoDB
+- a [Apache Camel](https://camel.apache.org/) instance listens for data on mosquitto and writes it into PostgreSQL
+- a [PostgreSQL](https://www.postgresql.org/) instance where data is written to by Apache Camel
 
 ## Getting started
 
@@ -38,7 +39,7 @@ Change directory:
 cd noi-flightdata/
 ```
 
-Start `mosquitto` running the script `mosquitto-docker-local-start.sh` located inside the `scripts` folder. This script starts `mosquitto` in a Docker container and exposes its ports 1883 and 9001:
+Start `mosquitto` running the script `mosquitto-docker-local-start.sh` located inside the `scripts` folder. This script starts `mosquitto` in a Docker container named `mosquitto` and exposes its ports 1883 and 9001:
 
 ```bash
 ./scripts/mosquitto-docker-local-start.sh
@@ -50,25 +51,36 @@ To subscribe to all topics on the running `mosquitto` instance, use the script `
 ./scripts/mosquitto-docker-local-sub.sh
 ```
 
-To publish a message to the `topic/test` topic on the `mosquitto` instance, use the script `mosquitto-docker-local-pub.sh` located inside the `scripts` folder. This script takes the message payload as its argument:
+To publish a message to the `topic/test` topic on the `mosquitto` instance, use the script `mosquitto-docker-local-pub.sh` located inside the `scripts` folder. This script takes the message payload as its argument. Please be sure to provide **valid JSON** as payload, because PostgreSQL expects JSON as payload using its `JSONB` datatype:
 
 ```bash
-./scripts/mosquitto-docker-local-pub.sh 'Hello World!'
+./scripts/mosquitto-docker-local-pub.sh '{"text": "Hello World!"}'
 ```
 
-To start the Apache Camel pipeline that listens for messages on `mosquitto` and publishes these messages to DynamoDB, run the script `integrator-start-dev.sh` located inside the `scripts` folder. But first you have to provide the following ENV variables to configure the access to your DynamoDB instance:
+Start `PostgreSQL` running the script `postgres-docker-local-start.sh` located inside the `scripts` folder. This script starts `PostgreSQL` in a Docker container named `postgres` and exposes its port 5432:
 
-- AWS_ACCESS_KEY_ID
-- AWS_SECRET_ACCESS_KEY
-- AWS_REGION
+```bash
+./scripts/postgres-docker-local-start.sh
+```
 
-After these ENV variables are set, start the integrator:
+> Note: the credentials used to start the `postgres` container must be the same that are used in the integrator.
+
+To start the Apache Camel integrator that listens for messages on `mosquitto` and publishes these messages to PostgreSQL, run the script `integrator-start-dev.sh` located inside the `scripts` folder. Apache Camel uses the PostgreSQL configuration provided in [application.properties](./integrator/src/main/resources/application.properties). It is advised to change that configuration, e.g. by providing the followgin ENV variables:
+
+- `DATABASE_URL`, e.g. `jdbc:postgresql://localhost:5432/flightdata`
+- `DATABASE_NAME`, e.g. `flightdata`
+- `DATABASE_USER`, e.g. `flightdata_user`
+- `DATABASE_PASS`, e.g. `flightdata_pass`
+
+> Note: the configured PostgreSQL credentials must be the same that are used to start the `postgres` container.
+
+To start the integrator run the following script:
 
 ```bash
 ./scripts/integrator-start-dev.sh
 ```
 
-You can now publish messages to `mosquitto` and see how they are written to DynamoDB.
+You can now publish messages to `mosquitto` and see how they are written to PostgreSQL.
 
 > Hint: take a look at the [scripts](#scripts) section to get a description of the available scripts.
 
@@ -98,6 +110,12 @@ The script [mosquitto-docker-sub-to-official-test-server.sh](./scripts/mosquitto
 
 The reason for the script to exist is that it provides an easy start point to play around with MQTT. The MQTT broker at `test.mosquitto.org` should be online and pusblish data 24 / 7.
 
+### postgres-docker-local-start.sh
+
+The script [postgres-docker-local-start.sh](/scripts/postgres-docker-local-start.sh) uses the official Docker image for [PostgreSQL](https://hub.docker.com/_/postgres/) to start a local container named `postgres` that runs a PostgreSQL instance. Please take a look at the script to see the credentials that are used.
+
+> Note: the credentials used to start the container must be the same that are used in the integrator.
+
 ### integrator-start-dev.sh
 
-This script starts the Apache Camel integration on localhost.
+The script [postgres-docker-local-start.sh](/scripts/integrator-start-dev.sh) starts the Apache Camel integrator on localhost. This script uses no Docker container at all, so please be sure to have Java and Maven installed (see [prerequisites](#prerequisites)).
