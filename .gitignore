@@ -1,2 +1,5 @@
 .idea
+.maven
 target
+
+.env
