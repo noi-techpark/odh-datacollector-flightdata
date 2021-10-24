@@ -6,7 +6,9 @@ This project contains sources and tools to record flight data via [MQTT](https:/
 
 - [General architecture](#general-architecture)
 - [Getting started](#getting-started)
-- [Scripts](scripts)
+- [Development](#development)
+- [Scripts](#scripts)
+- [Information](#information)
 
 ## General architecture
 
@@ -16,14 +18,17 @@ This project contains sources and tools to record flight data via [MQTT](https:/
 
 ## Getting started
 
-These instructions will get you a copy of this mono repository and prepare it for development.
+These instructions will get you a copy of this mono repository and prepare it for development. Please be aware that the provided implementation and configuration is yet not suitable for productive deployment (work in progress).
 
 ### Prerequisites
 
+The project supports [Docker Compose](https://docs.docker.com/compose/) and provides a `docker-compose.yml` that can be used to start all required parts of the application.
+
 To build the projects in the repository, the following prerequisites must be met:
 
-- Docker to start a [mosquitto](https://mosquitto.org/) instance as MQTT broker
-- Java JDK 11 or higher (e.g. [OpenJDK](https://openjdk.java.net/)) and [Maven](https://maven.apache.org/) 3.x to build and launch the integration pipeline based on Apache Camel
+- Docker
+- Docker Compose
+- Java JDK 11 or higher (e.g. [OpenJDK](https://openjdk.java.net/)) and [Maven](https://maven.apache.org/) 3.x if you want to build and launch the integration pipeline based on Apache Camel locally (not strictly necessary but nice to have for development)
 
 ### Installing
 
@@ -39,11 +44,25 @@ Change directory:
 cd noi-flightdata/
 ```
 
-Start `mosquitto` running the script `mosquitto-docker-local-start.sh` located inside the `scripts` folder. This script starts `mosquitto` in a Docker container named `mosquitto` and exposes its ports 1883 and 9001:
+Make a copy of the `env.example` file named `.env`. The `.env` file contains the configuration and can be adjusted by your needs:
 
 ```bash
-./scripts/mosquitto-docker-local-start.sh
+cp env.example .env
 ```
+
+Start `docker-compose`:
+
+```bash
+docker-compose up
+```
+
+Docker Compose should now start three containers:
+
+- mosquitto (MQTT)
+- postgres (Database)
+- integrator (Apache Camel)
+
+> Note that the first launch may take some time, because the Docker images must be pulled and the `integrator` container has to download all necessary Maven dependencies.
 
 To subscribe to all topics on the running `mosquitto` instance, use the script `mosquitto-docker-local-sub.sh` located inside the `scripts` folder:
 
@@ -57,40 +76,33 @@ To publish a message to the `topic/test` topic on the `mosquitto` instance, use 
 ./scripts/mosquitto-docker-local-pub.sh '{"text": "Hello World!"}'
 ```
 
-Start `PostgreSQL` running the script `postgres-docker-local-start.sh` located inside the `scripts` folder. This script starts `PostgreSQL` in a Docker container named `postgres` and exposes its port 5432:
+Data that is published to the MQTT broker should now be stored in the PostgreSQL instance (use any database client you want to interact with PostgreSQL).
+
+## Development
+
+For development purpose, you can start any of the Docker Compose containers individually, e.g. `docker-compose up mosquitto`.
+
+Usually you want to work on the `integrator`. The integrator reads from a MQTT broker (mosquitto) and writes to a PostgreSQL database. A common setup for development is therefor to launch mosquitto and PostgreSQL in their respective Docker containers and to start on `integrator` locally. This way you can e.g. easily debug the integrator. To get the described setup, follow the steps below.
+
+Start `mosquitto` and `postgres` containers using docker-compose:
 
 ```bash
-./scripts/postgres-docker-local-start.sh
+docker-compose up mosquitto postgres
 ```
 
-> Note: the credentials used to start the `postgres` container must be the same that are used in the integrator.
-
-To start the Apache Camel integrator that listens for messages on `mosquitto` and publishes these messages to PostgreSQL, run the script `integrator-start-dev.sh` located inside the `scripts` folder. Apache Camel uses the PostgreSQL configuration provided in [application.properties](./integrator/src/main/resources/application.properties). It is advised to change that configuration, e.g. by providing the followgin ENV variables:
-
-- `DATABASE_URL`, e.g. `jdbc:postgresql://localhost:5432/flightdata`
-- `DATABASE_NAME`, e.g. `flightdata`
-- `DATABASE_USER`, e.g. `flightdata_user`
-- `DATABASE_PASS`, e.g. `flightdata_pass`
-
-> Note: the configured PostgreSQL credentials must be the same that are used to start the `postgres` container.
-
-To start the integrator run the following script:
+Run the integrator locally in dev mode (please note that you need to have Java 11 and Maven 3.x installed):
 
 ```bash
-./scripts/integrator-start-dev.sh
+mvn -f ./integrator/pom.xml compile quarkus:dev
 ```
 
-You can now publish messages to `mosquitto` and see how they are written to PostgreSQL.
+This should get you started with development.
 
-> Hint: take a look at the [scripts](#scripts) section to get a description of the available scripts.
+> Note that you don't have to start the `integrator` locally for development. You can start it as container together with the other containers with `docker-compose up` as described in the [Installing](#installing) section. The only drawback is, that it is not that easy to attach a debugger to the integrator inside the Docker container.
 
 ## Scripts
 
 This section provides an overview of the available scripts that come with this project.
-
-### mosquitto-docker-local-start.sh
-
-The script [mosquitto-docker-local-start.sh](./scripts/mosquitto-docker-local-start.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto`. The container runs a mosquitto instance and exposes its ports 1883 and 9001.
 
 ### mosquitto-docker-local-pub.sh
 
@@ -110,12 +122,24 @@ The script [mosquitto-docker-sub-to-official-test-server.sh](./scripts/mosquitto
 
 The reason for the script to exist is that it provides an easy start point to play around with MQTT. The MQTT broker at `test.mosquitto.org` should be online and pusblish data 24 / 7.
 
-### postgres-docker-local-start.sh
+## Information
 
-The script [postgres-docker-local-start.sh](/scripts/postgres-docker-local-start.sh) uses the official Docker image for [PostgreSQL](https://hub.docker.com/_/postgres/) to start a local container named `postgres` that runs a PostgreSQL instance. Please take a look at the script to see the credentials that are used.
+### Support
 
-> Note: the credentials used to start the container must be the same that are used in the integrator.
+For support, please contact [Christian Gapp](https://github.com/gappc).
 
-### integrator-start-dev.sh
+### Contributing
 
-The script [postgres-docker-local-start.sh](/scripts/integrator-start-dev.sh) starts the Apache Camel integrator on localhost. This script uses no Docker container at all, so please be sure to have Java and Maven installed (see [prerequisites](#prerequisites)).
+If you'd like to contribute, please fork the repository and use a feature branch. Pull requests are warmly welcome.
+
+### Versioning
+
+This project uses [SemVer](https://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/noi-techpark/it.bz.opendatahub.databrowser/tags).
+
+### License
+
+The code in this project is licensed under the MIT license. See the LICENSE file for more information.
+
+### Authors
+
+- **Christian Gapp** - *Initial work* - [gappc](https://github.com/gappc)

@@ -29,6 +29,12 @@ public class DataSourceProvider {
         ds.setDatabaseName(databaseConfig.name());
         ds.setUser(databaseConfig.user());
         ds.setPassword(databaseConfig.pass());
+        System.out.println("-------DATASOURCE------------");
+        System.out.println("URL: " + databaseConfig.url());
+        System.out.println("NAME: " + databaseConfig.name());
+        System.out.println("USER: " + databaseConfig.user());
+        System.out.println("PASS: " + databaseConfig.pass());
+        System.out.println("-------DATASOURCE-END--------");
         return ds;
     }
 }

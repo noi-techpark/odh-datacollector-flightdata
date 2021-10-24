@@ -10,9 +10,14 @@ import javax.sql.DataSource;
 public class MqttRoutes extends RouteBuilder {
 
     private final DataSourceProvider dataSourceProvider;
+    private final MosquittoConfig mosquittoConfig;
 
-    public MqttRoutes(DataSourceProvider dataSourceProvider) {
+    public MqttRoutes(
+            DataSourceProvider dataSourceProvider,
+            MosquittoConfig mosquittoConfig
+    ) {
         this.dataSourceProvider = dataSourceProvider;
+        this.mosquittoConfig = mosquittoConfig;
     }
 
     @Override
@@ -20,7 +25,7 @@ public class MqttRoutes extends RouteBuilder {
         DataSource dataSource = dataSourceProvider.setupDataSource();
         bindToRegistry("flightdata", dataSource);
 
-        from("paho-mqtt5:#")
+        from("paho-mqtt5:#?brokerUrl=" + mosquittoConfig.url())
                 .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
                 .setBody(simple("insert into flightdata(topic, body) values (:?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
