@@ -34,7 +34,7 @@ public class MqttRoutes extends RouteBuilder {
         rest("/api")
                 .get()
                 .route()
-                .setBody(simple("select * from flightdata"))
+                .setBody(simple("select * from flightdata limit 100"))
                 .to("jdbc:flightdata")
                 .marshal()
                 .json()

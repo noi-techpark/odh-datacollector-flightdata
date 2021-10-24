@@ -20,6 +20,8 @@ services:
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?}"
   integrator:
     image: maven:3.8.3-jdk-11
+    ports:
+      - "8080:8080"
     volumes:
       - "./integrator:/integrator"
       - "./.maven:/root/.m2"
@@ -30,4 +32,4 @@ services:
       - "DATABASE_USER=${POSTGRES_USER:?}"
       - "DATABASE_PASS=${POSTGRES_PASSWORD:?}"
     working_dir: "/integrator"
-    command: "mvn compile quarkus:dev"
+    command: "mvn compile quarkus:dev -Dquarkus.http.host=0.0.0.0"

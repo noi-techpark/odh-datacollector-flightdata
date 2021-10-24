@@ -13,7 +13,7 @@ This project contains sources and tools to record flight data via [MQTT](https:/
 ## General architecture
 
 - a [mosquitto](https://mosquitto.org/) instance listens for sensor data, the MQTT protocol is used
-- a [Apache Camel](https://camel.apache.org/) instance listens for data on mosquitto and writes it into PostgreSQL
+- a [Apache Camel](https://camel.apache.org/) instance listens for data on mosquitto and writes it into PostgreSQL. In addition, this instance provides a simple REST endpoint at path `/api` that can be used to read the data stored in PostgreSQL (experimental)
 - a [PostgreSQL](https://www.postgresql.org/) instance where data is written to by Apache Camel
 
 ## Getting started
@@ -76,7 +76,11 @@ To publish a message to the `topic/test` topic on the `mosquitto` instance, use 
 ./scripts/mosquitto-docker-local-pub.sh '{"text": "Hello World!"}'
 ```
 
-Data that is published to the MQTT broker should now be stored in the PostgreSQL instance (use any database client you want to interact with PostgreSQL).
+Data that is published to the MQTT broker should now be stored in the PostgreSQL instance. Use any database client you want to interact with PostgreSQL.
+
+The `integrator` container provides also a simple REST endpoint to read the data stored in PostgreSQL. You can access it at port 8080 using the path `/api`, e.g. [http://localhost:8080/api](http://localhost:8080/api).
+
+> Note that the `/api` endpoint returns at most 100 results only.
 
 ## Development
 
