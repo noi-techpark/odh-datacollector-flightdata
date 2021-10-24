@@ -30,5 +30,15 @@ public class MqttRoutes extends RouteBuilder {
                 .setBody(simple("insert into flightdata(topic, body) values (:?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
                 .to("jdbc:flightdata?useHeadersAsParameters=true");
+
+        rest("/api")
+                .get()
+                .route()
+                .setBody(simple("select * from flightdata"))
+                .to("jdbc:flightdata")
+                .marshal()
+                .json()
+                .log(">>> ${body}");
+
     }
 }
