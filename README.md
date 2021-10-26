@@ -35,7 +35,7 @@ To build the projects in the repository, the following prerequisites must be met
 Get a copy of the repository, e.g. by cloning it from the following location:
 
 ```bash
-https://github.com/gappc/noi-flightdata.git
+git clone https://github.com/gappc/noi-flightdata.git
 ```
 
 Change directory:
