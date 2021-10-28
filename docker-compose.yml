@@ -7,7 +7,8 @@ services:
       - "1883:1883"
       - "9001:9001"
     volumes:
-      - "./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro"
+      - "${MOSQUITTO_CONF-./docker/mosquitto/mosquitto.conf}:/mosquitto/config/mosquitto.conf:ro"
+      - "${MOSQUITTO_INCLUDE_DIR-./docker/mosquitto/conf.d}:/mosquitto/config/conf.d:ro"
   postgres:
     image: postgres:13.4
     ports:
@@ -26,7 +27,10 @@ services:
       - "./integrator:/integrator"
       - "./.maven:/root/.m2"
     environment:
-      - "MOSQUITTO_URL=${MOSQUITTO_URL:?}"
+      - "INTEGRATOR_MQTT_URL=${INTEGRATOR_MQTT_URL:?}"
+      - "INTEGRATOR_MQTT_TOPIC=${INTEGRATOR_MQTT_TOPIC:?}"
+      - "INTEGRATOR_MQTT_USER=${INTEGRATOR_MQTT_USER}"
+      - "INTEGRATOR_MQTT_PASS=${INTEGRATOR_MQTT_PASS}"
       - "DATABASE_URL=${POSTGRES_JDBC_URL:?}"
       - "DATABASE_NAME=${POSTGRES_DB:?}"
       - "DATABASE_USER=${POSTGRES_USER:?}"

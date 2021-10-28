@@ -10,14 +10,14 @@ import javax.sql.DataSource;
 public class MqttRoutes extends RouteBuilder {
 
     private final DataSourceProvider dataSourceProvider;
-    private final MosquittoConfig mosquittoConfig;
+    private final MqttConfig mqttConfig;
 
     public MqttRoutes(
             DataSourceProvider dataSourceProvider,
-            MosquittoConfig mosquittoConfig
+            MqttConfig mqttConfig
     ) {
         this.dataSourceProvider = dataSourceProvider;
-        this.mosquittoConfig = mosquittoConfig;
+        this.mqttConfig = mqttConfig;
     }
 
     @Override
@@ -25,7 +25,12 @@ public class MqttRoutes extends RouteBuilder {
         DataSource dataSource = dataSourceProvider.setupDataSource();
         bindToRegistry("flightdata", dataSource);
 
-        from("paho-mqtt5:#?brokerUrl=" + mosquittoConfig.url())
+        String mqttConnectionString = getMqttConnectionString();
+        System.out.println("-------MQTT------------");
+        System.out.println("Connection string: " + mqttConnectionString);
+        System.out.println("-------MQTT-END--------");
+
+        from(mqttConnectionString)
                 .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
                 .setBody(simple("insert into flightdata(topic, body) values (:?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
@@ -40,5 +45,15 @@ public class MqttRoutes extends RouteBuilder {
                 .json()
                 .log(">>> ${body}");
 
+    }
+
+    private String getMqttConnectionString() {
+        final StringBuilder uri = new StringBuilder(String.format("paho-mqtt5:%s?brokerUrl=%s", mqttConfig.topic(), mqttConfig.url()));
+
+        // Check if MQTT credentials are provided. If so, then add the credentials to the connection string
+        mqttConfig.user().ifPresent(user -> uri.append(String.format("&userName=%s", user)));
+        mqttConfig.pass().ifPresent(pass -> uri.append(String.format("&password=%s", pass)));
+
+        return uri.toString();
     }
 }

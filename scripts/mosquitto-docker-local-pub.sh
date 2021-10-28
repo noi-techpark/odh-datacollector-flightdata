@@ -8,4 +8,4 @@ then
   exit 1
 fi
 
-docker run -it --rm --name mosquitto-pub --network="host" eclipse-mosquitto:2.0.12 sh -c "mosquitto_pub -t 'test/topic' -m '$PAYLOAD'"
+docker run -it --rm --name mosquitto-pub --network="host" eclipse-mosquitto:2.0.12 sh -c "mosquitto_pub -t 'flightdata' -m '$PAYLOAD'"
