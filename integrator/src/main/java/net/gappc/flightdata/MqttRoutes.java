@@ -40,12 +40,12 @@ public class MqttRoutes extends RouteBuilder {
                 .enableCORS(true)
                 .get()
                 .route()
-                .setBody(simple("select * from flightdata limit 100"))
+                .setBody(simple("select * from flightdata order by created_at desc limit 100"))
                 .to("jdbc:flightdata")
                 .marshal()
                 .json()
                 .log(">>> ${body}");
-
+                
     }
 
     private String getMqttConnectionString() {
