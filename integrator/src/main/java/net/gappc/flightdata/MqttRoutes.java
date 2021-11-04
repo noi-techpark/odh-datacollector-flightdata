@@ -23,7 +23,7 @@ public class MqttRoutes extends RouteBuilder {
     @Override
     public void configure() throws Exception {
         DataSource dataSource = dataSourceProvider.setupDataSource();
-        bindToRegistry("flightdata", dataSource);
+        bindToRegistry("integratorStore", dataSource);
 
         String mqttConnectionString = getMqttConnectionString();
         System.out.println("-------MQTT------------");
@@ -31,17 +31,27 @@ public class MqttRoutes extends RouteBuilder {
         System.out.println("-------MQTT-END--------");
 
         from(mqttConnectionString)
+                .multicast()
+                .to("seda:flightdata", "seda:genericdata");
+
+        from("seda:flightdata")
                 .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
                 .setBody(simple("insert into flightdata(topic, body) values (:?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
-                .to("jdbc:flightdata?useHeadersAsParameters=true");
+                .to("jdbc:integratorStore?useHeadersAsParameters=true");
+
+        from("seda:genericdata")
+                .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
+                .setBody(simple("insert into genericdata(datasource, type, rawdata) values ('MQTT', :?topic, '${body}'::jsonb)"))
+                .log(">>> ${body}")
+                .to("jdbc:integratorStore?useHeadersAsParameters=true");
 
         rest("/api")
                 .enableCORS(true)
                 .get()
                 .route()
                 .setBody(simple("select id, topic, body#>>'{}' as body, created_at from flightdata order by created_at desc limit 100"))
-                .to("jdbc:flightdata")
+                .to("jdbc:integratorStore")
                 .marshal()
                 .json()
                 .log(">>> ${body}");
