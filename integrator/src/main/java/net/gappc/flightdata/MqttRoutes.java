@@ -9,6 +9,8 @@ import javax.sql.DataSource;
 @ApplicationScoped
 public class MqttRoutes extends RouteBuilder {
 
+    private static final String FLIGHTDATA_SBS_TOPIC = "flightdata/sbs";
+
     private final DataSourceProvider dataSourceProvider;
     private final MqttConfig mqttConfig;
 
@@ -31,17 +33,17 @@ public class MqttRoutes extends RouteBuilder {
         System.out.println("-------MQTT-END--------");
 
         from(mqttConnectionString)
+                .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
                 .multicast()
                 .to("seda:mqttstream?multipleConsumers=true");
 
         from("seda:mqttstream?multipleConsumers=true")
-                .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
+                .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
                 .setBody(simple("insert into flightdata(topic, body) values (:?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
                 .to("jdbc:integratorStore?useHeadersAsParameters=true");
 
         from("seda:mqttstream?multipleConsumers=true")
-                .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
                 .setBody(simple("insert into genericdata(datasource, type, rawdata) values ('MQTT', :?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
                 .to("jdbc:integratorStore?useHeadersAsParameters=true");
@@ -59,7 +61,7 @@ public class MqttRoutes extends RouteBuilder {
     }
 
     private String getMqttConnectionString() {
-        final StringBuilder uri = new StringBuilder(String.format("paho-mqtt5:%s?brokerUrl=%s", mqttConfig.topic(), mqttConfig.url()));
+        final StringBuilder uri = new StringBuilder(String.format("paho-mqtt5:#?brokerUrl=%s", mqttConfig.url()));
 
         // Check if MQTT credentials are provided. If so, then add the credentials to the connection string
         mqttConfig.user().ifPresent(user -> uri.append(String.format("&userName=%s", user)));

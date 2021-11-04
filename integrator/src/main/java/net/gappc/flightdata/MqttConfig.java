@@ -15,8 +15,6 @@ import java.util.Optional;
 public interface MqttConfig {
     String url();
 
-    String topic();
-
     // Username is optional and may not be set
     Optional<String> user();
 
