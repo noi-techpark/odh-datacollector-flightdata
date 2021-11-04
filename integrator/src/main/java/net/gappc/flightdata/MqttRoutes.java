@@ -37,6 +37,7 @@ public class MqttRoutes extends RouteBuilder {
                 .to("jdbc:flightdata?useHeadersAsParameters=true");
 
         rest("/api")
+                .enableCORS(true)
                 .get()
                 .route()
                 .setBody(simple("select * from flightdata limit 100"))
