@@ -32,6 +32,7 @@ public class MqttRoutes extends RouteBuilder {
 
         from(mqttConnectionString)
                 .multicast()
+                .parallelProcessing()
                 .to("seda:flightdata", "seda:genericdata");
 
         from("seda:flightdata")
