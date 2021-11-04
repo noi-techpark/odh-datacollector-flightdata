@@ -40,7 +40,7 @@ public class MqttRoutes extends RouteBuilder {
                 .enableCORS(true)
                 .get()
                 .route()
-                .setBody(simple("select * from flightdata order by created_at desc limit 100"))
+                .setBody(simple("select id, topic, body#>>'{}' as body, created_at from flightdata order by created_at desc limit 100"))
                 .to("jdbc:flightdata")
                 .marshal()
                 .json()
