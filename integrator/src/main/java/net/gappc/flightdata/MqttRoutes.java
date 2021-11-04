@@ -32,16 +32,15 @@ public class MqttRoutes extends RouteBuilder {
 
         from(mqttConnectionString)
                 .multicast()
-                .parallelProcessing()
-                .to("seda:flightdata", "seda:genericdata");
+                .to("seda:mqttstream?multipleConsumers=true");
 
-        from("seda:flightdata")
+        from("seda:mqttstream?multipleConsumers=true")
                 .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
                 .setBody(simple("insert into flightdata(topic, body) values (:?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
                 .to("jdbc:integratorStore?useHeadersAsParameters=true");
 
-        from("seda:genericdata")
+        from("seda:mqttstream?multipleConsumers=true")
                 .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
                 .setBody(simple("insert into genericdata(datasource, type, rawdata) values ('MQTT', :?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
