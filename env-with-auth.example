@@ -48,6 +48,17 @@ INTEGRATOR_MQTT_USER=user1
 # in order to get an idea how to do that.
 INTEGRATOR_MQTT_PASS=password1
 
+# The start command for the Docker container that runs the integrator. The
+# default command starts the integrator application in development mode, changes
+# to the source code result in a recompile and restart of the integrator.
+# The development mode is fine for development purposes, but should not be
+# used in production. If you want to start the integrator in production your
+# start command could look like this:
+#
+# bash -c 'mvn clean package -Dquarkus.package.type=uber-jar -D quarkus.package.output-name=integrator -DskipTests && java -jar target/integrator-runner.jar'
+#
+INTEGRATOR_CONTAINER_START_COMMAND=mvn compile quarkus:dev
+
 # =================================================================
 # PostgreSQL configuration
 # =================================================================

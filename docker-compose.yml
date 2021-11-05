@@ -34,4 +34,4 @@ services:
       - "DATABASE_USER=${POSTGRES_USER:?}"
       - "DATABASE_PASS=${POSTGRES_PASSWORD:?}"
     working_dir: "/integrator"
-    command: "mvn compile quarkus:dev -Dquarkus.http.host=0.0.0.0"
+    command: "${INTEGRATOR_CONTAINER_START_COMMAND:-mvn compile quarkus:dev}"
