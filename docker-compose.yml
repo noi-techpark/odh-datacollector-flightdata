@@ -22,6 +22,7 @@ services:
     image: maven:3.8.3-jdk-11
     ports:
       - "8080:8080"
+      - "8081:8081"
     volumes:
       - "./integrator:/integrator"
       - "./.maven:/root/.m2"
