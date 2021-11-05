@@ -47,7 +47,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.camel.quarkus</groupId>
-      <artifactId>camel-quarkus-jdbc</artifactId>
+      <artifactId>camel-quarkus-sql</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.camel.quarkus</groupId>

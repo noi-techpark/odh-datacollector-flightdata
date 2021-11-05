@@ -9,6 +9,8 @@ import javax.sql.DataSource;
 @ApplicationScoped
 public class MqttRoutes extends RouteBuilder {
 
+    private static final int DB_INSERT_MAX_BATCH_SIZE = 100;
+    private static final int DB_INSERT_MAX_BATCH_INTERVALL = 1000;
     private static final String FLIGHTDATA_SBS_TOPIC = "flightdata/sbs";
 
     private final DataSourceProvider dataSourceProvider;
@@ -37,16 +39,22 @@ public class MqttRoutes extends RouteBuilder {
                 .multicast()
                 .to("seda:mqttstream?multipleConsumers=true");
 
-        from("seda:mqttstream?multipleConsumers=true")
-                .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
-                .setBody(simple("insert into flightdata(topic, body) values (:?topic, '${body}'::jsonb)"))
-                .log(">>> ${body}")
-                .to("jdbc:integratorStore?useHeadersAsParameters=true");
+        BatchStrategy dbInsertBatchStrategy = new BatchStrategy();
 
         from("seda:mqttstream?multipleConsumers=true")
-                .setBody(simple("insert into genericdata(datasource, type, rawdata) values ('MQTT', :?topic, '${body}'::jsonb)"))
                 .log(">>> ${body}")
-                .to("jdbc:integratorStore?useHeadersAsParameters=true");
+                .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
+                .aggregate(constant(true), dbInsertBatchStrategy)
+                .completionSize(DB_INSERT_MAX_BATCH_SIZE)
+                .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
+                .to("sql:insert into flightdata(topic, body) values (:#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
+
+        from("seda:mqttstream?multipleConsumers=true")
+                .log(">>> ${body}")
+                .aggregate(constant(true), dbInsertBatchStrategy)
+                .completionSize(DB_INSERT_MAX_BATCH_SIZE)
+                .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
+                .to("sql:insert into genericdata(datasource, type, rawdata) values ('MQTT', :#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
 
         rest("/api")
                 .enableCORS(true)
