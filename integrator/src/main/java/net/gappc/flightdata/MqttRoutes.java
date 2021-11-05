@@ -65,7 +65,10 @@ public class MqttRoutes extends RouteBuilder {
                 .marshal()
                 .json()
                 .log(">>> ${body}");
-                
+
+        from("seda:mqttstream?multipleConsumers=true")
+                .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
+                .to("websocket://localhost:8081/flightdata/sbs?sendToAll=true");
     }
 
     private String getMqttConnectionString() {
