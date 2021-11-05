@@ -35,6 +35,7 @@ public class MqttRoutes extends RouteBuilder {
         System.out.println("-------MQTT-END--------");
 
         from(mqttConnectionString)
+                .routeId("[Route: MQTT subscription]")
                 .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
                 .multicast()
                 .to("seda:mqttstream?multipleConsumers=true");
@@ -42,6 +43,7 @@ public class MqttRoutes extends RouteBuilder {
         BatchStrategy dbInsertBatchStrategy = new BatchStrategy();
 
         from("seda:mqttstream?multipleConsumers=true")
+                .routeId("[Route: to flightdata table]")
                 .log(">>> ${body}")
                 .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
                 .aggregate(constant(true), dbInsertBatchStrategy)
@@ -50,6 +52,7 @@ public class MqttRoutes extends RouteBuilder {
                 .to("sql:insert into flightdata(topic, body) values (:#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
 
         from("seda:mqttstream?multipleConsumers=true")
+                .routeId("[Route: to genericdata table]")
                 .log(">>> ${body}")
                 .aggregate(constant(true), dbInsertBatchStrategy)
                 .completionSize(DB_INSERT_MAX_BATCH_SIZE)
@@ -60,6 +63,7 @@ public class MqttRoutes extends RouteBuilder {
                 .enableCORS(true)
                 .get()
                 .route()
+                .routeId("[Route: REST]")
                 .setBody(simple("select id, topic, body#>>'{}' as body, created_at from flightdata order by created_at desc limit 100"))
                 .to("jdbc:integratorStore")
                 .marshal()
@@ -67,6 +71,7 @@ public class MqttRoutes extends RouteBuilder {
                 .log(">>> ${body}");
 
         from("seda:mqttstream?multipleConsumers=true")
+                .routeId("[Route: WebSocket]")
                 .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
                 .to("websocket://localhost:8081/flightdata/sbs?sendToAll=true");
     }
