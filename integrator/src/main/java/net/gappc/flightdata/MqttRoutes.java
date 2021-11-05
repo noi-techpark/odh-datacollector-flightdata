@@ -2,6 +2,7 @@ package net.gappc.flightdata;
 
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.paho.mqtt5.PahoMqtt5Constants;
+import org.apache.camel.component.websocket.WebsocketComponent;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.sql.DataSource;
@@ -70,6 +71,7 @@ public class MqttRoutes extends RouteBuilder {
                 .json()
                 .log(">>> ${body}");
 
+        ((WebsocketComponent)getContext().getComponent("websocket")).setMaxThreads(5);
         from("seda:mqttstream?multipleConsumers=true")
                 .routeId("[Route: WebSocket]")
                 .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
