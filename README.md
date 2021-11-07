@@ -190,6 +190,10 @@ user1:$7$101$cNdSny7311rTLYeB$SSRWvaddDft6AnqSEtwfNoIQRVMOL2vlkPJWmlHMSYwbRQF4HZ
 
 You can see that the password was hashed. This file is now a valid `mosquitto` password file.
 
+### mosquitto-docker-local-reload-config.sh
+
+This script triggers a mosquitto instance running in a Docker container named `noi-flightdata_mosquitto_1` (as it is the case when the Docker containers are started with `docker-compose`) to reload its configuration. This way, configuration changes become effective without restarting mosquitto (during a restart no messages can be received).
+
 ## Information
 
 ### Support
