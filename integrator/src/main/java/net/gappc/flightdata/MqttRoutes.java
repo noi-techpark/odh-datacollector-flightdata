@@ -1,8 +1,11 @@
 package net.gappc.flightdata;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.paho.mqtt5.PahoMqtt5Constants;
 import org.apache.camel.component.websocket.WebsocketComponent;
+import org.apache.camel.model.RouteDefinition;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.sql.DataSource;
@@ -13,6 +16,9 @@ public class MqttRoutes extends RouteBuilder {
     private static final int DB_INSERT_MAX_BATCH_SIZE = 100;
     private static final int DB_INSERT_MAX_BATCH_INTERVALL = 1000;
     private static final String FLIGHTDATA_SBS_TOPIC = "flightdata/sbs";
+
+    private static final String MQTTSTREAM_MULTIPLE_CONSUMERS = "seda:mqttstream?multipleConsumers=true";
+    private static final String VALID_FLIGHTDATA_MULTIPLE_CONSUMERS = "seda:flightdata?multipleConsumers=true";
 
     private final DataSourceProvider dataSourceProvider;
     private final MqttConfig mqttConfig;
@@ -35,31 +41,55 @@ public class MqttRoutes extends RouteBuilder {
         System.out.println("Connection string: " + mqttConnectionString);
         System.out.println("-------MQTT-END--------");
 
+        // Use MQTT connection
+        // -> expose the data as MQTTSTREAM_MULTIPLE_CONSUMERS stream
         from(mqttConnectionString)
                 .routeId("[Route: MQTT subscription]")
                 .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC))
                 .multicast()
-                .to("seda:mqttstream?multipleConsumers=true");
+                .to(MQTTSTREAM_MULTIPLE_CONSUMERS);
 
-        BatchStrategy dbInsertBatchStrategy = new BatchStrategy();
-
-        from("seda:mqttstream?multipleConsumers=true")
-                .routeId("[Route: to flightdata table]")
-                .log(">>> ${body}")
-                .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
-                .aggregate(constant(true), dbInsertBatchStrategy)
-                .completionSize(DB_INSERT_MAX_BATCH_SIZE)
-                .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
-                .to("sql:insert into flightdata(topic, body) values (:#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
-
-        from("seda:mqttstream?multipleConsumers=true")
+        // Use MQTTSTREAM_MULTIPLE_CONSUMERS stream
+        // -> Write that data to table genericdata in batches
+        from(MQTTSTREAM_MULTIPLE_CONSUMERS)
                 .routeId("[Route: to genericdata table]")
-                .log(">>> ${body}")
-                .aggregate(constant(true), dbInsertBatchStrategy)
+                .aggregate(constant(true), new BatchStrategy(exchange -> exchange.getMessage().getBody(String.class)))
                 .completionSize(DB_INSERT_MAX_BATCH_SIZE)
                 .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
                 .to("sql:insert into genericdata(datasource, type, rawdata) values ('MQTT', :#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
 
+        // Use MQTTSTREAM_MULTIPLE_CONSUMERS stream
+        // -> filter for MQTT topic FLIGHTDATA_SBS_TOPIC
+        // -> Use that stream to build aggregates of valid flightdata
+        // -> Expose that data as FLIGHTDATA_MULTIPLE_CONSUMERS stream
+        from(MQTTSTREAM_MULTIPLE_CONSUMERS)
+                .routeId("[Route: to flightdata stream]")
+                .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
+                // Put body as string into header "rawdata" for later reuse
+                .process(exchange -> {
+                    String bodyAsString = exchange.getMessage().getBody(String.class);
+                    exchange.getMessage().setHeader("rawdata", bodyAsString);
+                })
+                // Aggregate valid flightdata
+                .process(new FlightdataConverter())
+                .filter(simple("${body.icaoAddr} != null"))
+                .aggregate(header("flightDataId"), new FlightdataAggregation())
+                .completionPredicate(exchange -> exchange.getProperty(Exchange.AGGREGATION_COMPLETE_CURRENT_GROUP, false, Boolean.class))
+                .multicast()
+                .to(VALID_FLIGHTDATA_MULTIPLE_CONSUMERS);
+
+        // Use VALID_FLIGHTDATA_MULTIPLE_CONSUMERS stream (aggregated flightdata)
+        // -> Write that data into table flightdata in batches
+        from(VALID_FLIGHTDATA_MULTIPLE_CONSUMERS)
+                .routeId("[Route: to flightdata table]")
+                // Aggregate DB batch writes
+                .aggregate(constant(true), new BatchStrategy(exchange -> exchange.getMessage().getHeader("rawdata", String.class)))
+                .completionSize(DB_INSERT_MAX_BATCH_SIZE)
+                .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
+                .log(">>> ${header.topic} ${header.rawdata}")
+                .to("sql:insert into flightdata(topic, body) values (:#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
+
+        // Expose REST API that returns last 100 elements from flightdata table
         rest("/api")
                 .enableCORS(true)
                 .get()
@@ -72,10 +102,25 @@ public class MqttRoutes extends RouteBuilder {
                 .log(">>> ${body}");
 
         ((WebsocketComponent)getContext().getComponent("websocket")).setMaxThreads(5);
-        from("seda:mqttstream?multipleConsumers=true")
-                .routeId("[Route: WebSocket]")
+
+        // Use MQTTSTREAM_MULTIPLE_CONSUMERS stream
+        // -> Filter for MQTT topic FLIGHTDATA_SBS_TOPIC
+        // -> Expose that stream as WebSocket on topic /flightdata/sbs
+        from(MQTTSTREAM_MULTIPLE_CONSUMERS)
+                .routeId("[Route: WebSocket SBS]")
                 .filter(header(PahoMqtt5Constants.MQTT_TOPIC).isEqualTo(FLIGHTDATA_SBS_TOPIC))
                 .to("websocket://0.0.0.0:8081/flightdata/sbs?sendToAll=true");
+
+        // Use FLIGHTDATA_MULTIPLE_CONSUMERS stream (aggregated flightdata)
+        // -> Expose that data as WebSocket on topic /flightdata/sbs-aggregated
+        ObjectMapper objectMapper = new ObjectMapper();
+        from(VALID_FLIGHTDATA_MULTIPLE_CONSUMERS)
+                .routeId("[Route: WebSocket SBS aggregated]")
+                .process(exchange -> {
+                    Flightdata flightdata = exchange.getMessage().getBody(Flightdata.class);
+                    exchange.getMessage().setBody(objectMapper.writeValueAsString(flightdata));
+                })
+                .to("websocket://0.0.0.0:8081/flightdata/sbs-aggregated?sendToAll=true");
     }
 
     private String getMqttConnectionString() {
