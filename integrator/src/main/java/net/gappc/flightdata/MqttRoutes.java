@@ -95,7 +95,7 @@ public class MqttRoutes extends RouteBuilder {
                 .get()
                 .route()
                 .routeId("[Route: REST]")
-                .setBody(simple("select id, topic, body#>>'{}' as body, created_at from flightdata order by created_at desc limit 100"))
+                .setBody(simple("select id, topic, body#>>'{}' as body, timestamp from flightdata order by timestamp desc limit 100"))
                 .to("jdbc:integratorStore")
                 .marshal()
                 .json()
@@ -132,4 +132,11 @@ public class MqttRoutes extends RouteBuilder {
 
         return uri.toString();
     }
+
+    private RouteDefinition fromGenericdataExportAsMqttWithFlightdataSbsTopic() {
+        return from("stream:file?fileName=/home/chris/projects/noi/flightdata/data-export/genericdata.export")
+                .setHeader(PahoMqtt5Constants.MQTT_TOPIC, simple(FLIGHTDATA_SBS_TOPIC))
+                .setHeader("topic", header(PahoMqtt5Constants.MQTT_TOPIC));
+    }
+
 }
