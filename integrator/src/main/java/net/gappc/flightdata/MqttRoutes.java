@@ -41,6 +41,8 @@ public class MqttRoutes extends RouteBuilder {
         System.out.println("Connection string: " + mqttConnectionString);
         System.out.println("-------MQTT-END--------");
 
+        String mqttUsername = mqttConfig.user().orElse("UNKNOWN");
+
         // Use MQTT connection
         // -> expose the data as MQTTSTREAM_MULTIPLE_CONSUMERS stream
         from(mqttConnectionString)
@@ -56,7 +58,7 @@ public class MqttRoutes extends RouteBuilder {
                 .aggregate(constant(true), new BatchStrategy(exchange -> exchange.getMessage().getBody(String.class)))
                 .completionSize(DB_INSERT_MAX_BATCH_SIZE)
                 .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
-                .to("sql:insert into genericdata(datasource, type, rawdata) values ('MQTT', :#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
+                .to("sql:insert into genericdata(username, datasource, type, rawdata) values ('" + mqttUsername + "', 'MQTT', :#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
 
         // Use MQTTSTREAM_MULTIPLE_CONSUMERS stream
         // -> filter for MQTT topic FLIGHTDATA_SBS_TOPIC
@@ -87,7 +89,7 @@ public class MqttRoutes extends RouteBuilder {
                 .completionSize(DB_INSERT_MAX_BATCH_SIZE)
                 .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
                 .log(">>> ${header.topic} ${header.rawdata}")
-                .to("sql:insert into flightdata(topic, body) values (:#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
+                .to("sql:insert into flightdata(username, topic, body) values ('" + mqttUsername + "', :#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
 
         // Expose REST API that returns last 100 elements from flightdata table
         rest("/api")
