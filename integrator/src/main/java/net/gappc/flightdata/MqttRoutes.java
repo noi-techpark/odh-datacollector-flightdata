@@ -89,7 +89,7 @@ public class MqttRoutes extends RouteBuilder {
                 .completionSize(DB_INSERT_MAX_BATCH_SIZE)
                 .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
                 .log(">>> ${header.topic} ${header.rawdata}")
-                .to("sql:insert into flightdata(username, topic, body) values ('" + mqttUsername + "', :#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
+                .to("sql:insert into flightdata(username, topic, rawdata) values ('" + mqttUsername + "', :#topic, :#message::jsonb)?dataSource=#integratorStore&batch=true");
 
         // Expose REST API that returns last 100 elements from flightdata table
         rest("/api")
@@ -97,7 +97,7 @@ public class MqttRoutes extends RouteBuilder {
                 .get()
                 .route()
                 .routeId("[Route: REST]")
-                .setBody(simple("select id, topic, body#>>'{}' as body, timestamp from flightdata order by timestamp desc limit 100"))
+                .setBody(simple("select id, topic, rawdata#>>'{}' as rawdata, timestamp from flightdata order by timestamp desc limit 100"))
                 .to("jdbc:integratorStore")
                 .marshal()
                 .json()
