@@ -90,17 +90,17 @@ public class FlightdataAggregation implements AggregationStrategy {
             didUpdate = true;
         }
 
-        if (fd2.getSpeed() != null && !fd2.getSpeed().equals(fd1.getSpeed())) {
+        if (Boolean.TRUE.equals(fd2.getSpeedValid()) && fd2.getSpeed() != null && !fd2.getSpeed().equals(fd1.getSpeed())) {
             fd1.setSpeed(fd2.getSpeed());
             didUpdate = true;
         }
 
-        if (fd2.getLat() != null && !fd2.getLat().equals(fd1.getLat())) {
+        if (Boolean.TRUE.equals(fd2.getPositionValid()) && fd2.getLat() != null && !fd2.getLat().equals(fd1.getLat())) {
             fd1.setLat(fd2.getLat());
             didUpdate = true;
         }
 
-        if (fd2.getLng() != null && !fd2.getLng().equals(fd1.getLng())) {
+        if (Boolean.TRUE.equals(fd2.getPositionValid()) && fd2.getLng() != null && !fd2.getLng().equals(fd1.getLng())) {
             fd1.setLng(fd2.getLng());
             didUpdate = true;
         }
