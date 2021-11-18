@@ -123,6 +123,13 @@ public class MqttRoutes extends RouteBuilder {
                 .json()
                 .log(">>> ${body}");
 
+        rest("/swagger")
+                .enableCORS(true)
+                .get()
+                .route()
+                .routeId("[Route: Swagger]")
+                .to("rest-api:basePath");
+
         ((WebsocketComponent)getContext().getComponent("websocket")).setMaxThreads(5);
 
         // Use MQTTSTREAM_MULTIPLE_CONSUMERS stream
@@ -143,6 +150,8 @@ public class MqttRoutes extends RouteBuilder {
                     exchange.getMessage().setBody(objectMapper.writeValueAsString(flightdata));
                 })
                 .to("websocket://0.0.0.0:8081/flightdata/sbs-aggregated?sendToAll=true");
+
+
     }
 
     private String getMqttConnectionString() {
