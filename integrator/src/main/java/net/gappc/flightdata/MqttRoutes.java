@@ -3,15 +3,20 @@ package net.gappc.flightdata;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.paho.mqtt5.PahoMqtt5Component;
 import org.apache.camel.component.paho.mqtt5.PahoMqtt5Constants;
 import org.apache.camel.component.websocket.WebsocketComponent;
 import org.apache.camel.model.RouteDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.sql.DataSource;
 
 @ApplicationScoped
 public class MqttRoutes extends RouteBuilder {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MqttRoutes.class);
 
     private static final int DB_INSERT_MAX_BATCH_SIZE = 100;
     private static final int DB_INSERT_MAX_BATCH_INTERVALL = 1000;
@@ -32,16 +37,19 @@ public class MqttRoutes extends RouteBuilder {
     }
 
     @Override
-    public void configure() throws Exception {
+    public void configure() {
         DataSource dataSource = dataSourceProvider.setupDataSource();
         bindToRegistry("integratorStore", dataSource);
 
         String mqttConnectionString = getMqttConnectionString();
-        System.out.println("-------MQTT------------");
-        System.out.println("Connection string: " + mqttConnectionString);
-        System.out.println("-------MQTT-END--------");
+        LOG.info("-------MQTT------------");
+        LOG.info("Connection string: {}", mqttConnectionString);
+        LOG.info("-------MQTT-END--------");
 
         String mqttUsername = mqttConfig.user().orElse("UNKNOWN");
+
+        ((PahoMqtt5Component)getContext().getComponent("paho-mqtt5")).getConfiguration().setCleanStart(false);
+        ((PahoMqtt5Component)getContext().getComponent("paho-mqtt5")).getConfiguration().setClientId("datacollector-flightdata");
 
         // Use MQTT connection
         // -> expose the data as MQTTSTREAM_MULTIPLE_CONSUMERS stream
@@ -96,9 +104,25 @@ public class MqttRoutes extends RouteBuilder {
                 .enableCORS(true)
                 .get()
                 .route()
-                .routeId("[Route: REST]")
+                .routeId("[Route: REST test]")
                 .setBody(simple("select id, topic, rawdata#>>'{}' as rawdata, timestamp from flightdata order by timestamp desc limit 100"))
                 .to("jdbc:integratorStore")
+                .marshal()
+                .json()
+                .log(">>> ${body}");
+
+        rest("/flightdata/sbs?aggregate={aggregate}&ts={ts}&limit={limit}")
+                .enableCORS(true)
+                .get()
+                .route()
+                .routeId("[Route: REST SBS]")
+                .process(new SbsRestParameterExtractor())
+                .choice()
+                    .when(header("aggregate").isEqualTo(Boolean.TRUE))
+                    .to("sql:select id, timestamp, rawdata::text as rawdata from flightdata where timestamp >= :#ts order by timestamp desc limit :#limit")
+                .otherwise()
+                    .to("sql:select id, timestamp, rawdata::text as rawdata from genericdata where datasource='MQTT' AND timestamp >= :#ts order by timestamp desc limit :#limit")
+                .end()
                 .marshal()
                 .json()
                 .log(">>> ${body}");
