@@ -3,7 +3,6 @@ package net.gappc.flightdata;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.component.paho.mqtt5.PahoMqtt5Component;
 import org.apache.camel.component.paho.mqtt5.PahoMqtt5Constants;
 import org.apache.camel.component.websocket.WebsocketComponent;
 import org.apache.camel.model.RouteDefinition;
@@ -47,9 +46,6 @@ public class MqttRoutes extends RouteBuilder {
         LOG.info("-------MQTT-END--------");
 
         String mqttUsername = mqttConfig.user().orElse("UNKNOWN");
-
-        ((PahoMqtt5Component)getContext().getComponent("paho-mqtt5")).getConfiguration().setCleanStart(false);
-        ((PahoMqtt5Component)getContext().getComponent("paho-mqtt5")).getConfiguration().setClientId("datacollector-flightdata");
 
         // Use MQTT connection
         // -> expose the data as MQTTSTREAM_MULTIPLE_CONSUMERS stream
