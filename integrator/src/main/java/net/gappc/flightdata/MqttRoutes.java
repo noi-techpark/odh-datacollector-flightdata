@@ -123,6 +123,16 @@ public class MqttRoutes extends RouteBuilder {
                 .json()
                 .log(">>> ${body}");
 
+        rest("/flightdata-scheduled")
+                .enableCORS(true)
+                .get()
+                .route()
+                .routeId("[Route: REST FD scheduled]")
+                .to("sql:select id, company, timestamp, rawdata::text as rawdata from flightdata_scheduled order by timestamp desc")
+                .marshal()
+                .json()
+                .log(">>> ${body}");
+
         rest("/swagger")
                 .enableCORS(true)
                 .get()
