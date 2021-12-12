@@ -26,38 +26,38 @@ MOSQUITTO_CONF=./docker/mosquitto/mosquitto-with-auth.conf
 MOSQUITTO_INCLUDE_DIR=./docker/mosquitto/conf.d
 
 # =================================================================
-# Integrator configuration
+# Datacollector configuration
 # =================================================================
 
 # MQTT URL
-INTEGRATOR_MQTT_URL=tcp://mosquitto:1883
+DATACOLLECTOR_MQTT_URL=tcp://mosquitto:1883
 
-# MQTT username for the integrator, leave this setting empty if mosquitto
+# MQTT username for the datacollector, leave this setting empty if mosquitto
 # allows anonymous access.
-# Note that this setting is used in the integrator only. You still have
+# Note that this setting is used in the datacollector only. You still have
 # to add the user/password to your MQTT broker. For mosquitto, take a look at the
 # "Authentication" section in https://mosquitto.org/man/mosquitto-conf-5.html
 # in order to get an idea how to do that.
-INTEGRATOR_MQTT_USER=user1
+DATACOLLECTOR_MQTT_USER=user1
 
-# MQTT username for the integrator, leave this setting empty if mosquitto
+# MQTT username for the datacollector, leave this setting empty if mosquitto
 # allows anonymous access.
-# Note that this setting is used in the integrator only. You still have
+# Note that this setting is used in the datacollector only. You still have
 # to add the user/password to your MQTT broker. For mosquitto, take a look at the
 # "Authentication" section in https://mosquitto.org/man/mosquitto-conf-5.html
 # in order to get an idea how to do that.
-INTEGRATOR_MQTT_PASS=password1
+DATACOLLECTOR_MQTT_PASS=password1
 
-# The start command for the Docker container that runs the integrator. The
-# default command starts the integrator application in development mode, changes
-# to the source code result in a recompile and restart of the integrator.
+# The start command for the Docker container that runs the datacollector. The
+# default command starts the datacollector application in development mode, changes
+# to the source code result in a recompile and restart of the datacollector.
 # The development mode is fine for development purposes, but should not be
-# used in production. If you want to start the integrator in production your
+# used in production. If you want to start the datacollector in production your
 # start command could look like this:
 #
-# bash -c 'mvn clean package -Dquarkus.package.type=uber-jar -D quarkus.package.output-name=integrator -DskipTests && java -jar target/integrator-runner.jar'
+# bash -c 'mvn clean package -Dquarkus.package.type=uber-jar -D quarkus.package.output-name=datacollector -DskipTests && java -jar target/datacollector-runner.jar'
 #
-INTEGRATOR_CONTAINER_START_COMMAND=mvn compile quarkus:dev
+DATACOLLECTOR_CONTAINER_START_COMMAND=mvn compile quarkus:dev
 
 # =================================================================
 # PostgreSQL configuration
