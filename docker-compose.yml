@@ -4,14 +4,14 @@ services:
   mosquitto:
     image: eclipse-mosquitto:2.0.12
     ports:
-      - "1883:1883"
+      - "${EXPOSED_MQTT_PORT}:${INTERNAL_MQTT_PORT}"
     volumes:
       - "${MOSQUITTO_CONF-./docker/mosquitto/mosquitto.conf}:/mosquitto/config/mosquitto.conf:ro"
       - "${MOSQUITTO_INCLUDE_DIR-./docker/mosquitto/conf.d}:/mosquitto/config/conf.d:ro"
   postgres:
     image: postgres:13.4
     ports:
-      - "5432:5432"
+      - "${EXPOSED_POSTGRES_PORT}:5432"
     volumes:
       - "./docker/postgres/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro"
     environment:
@@ -21,8 +21,8 @@ services:
   datacollector:
     image: maven:3.8.3-jdk-11
     ports:
-      - "8080:8080"
-      - "8081:8081"
+      - "${EXPOSED_INTEGRATOR_REST_PORT}:8080"
+      - "${EXPOSED_INTEGRATOR_WEBSOCKET_PORT}:8081"
     volumes:
       - "./datacollector:/datacollector"
       - "./.maven:/root/.m2"
