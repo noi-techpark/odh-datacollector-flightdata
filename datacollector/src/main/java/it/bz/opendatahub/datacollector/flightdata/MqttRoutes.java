@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.sql.DataSource;
 
 @ApplicationScoped
 public class MqttRoutes extends RouteBuilder {
@@ -24,22 +23,14 @@ public class MqttRoutes extends RouteBuilder {
     private static final String MQTTSTREAM_MULTIPLE_CONSUMERS = "seda:mqttstream?multipleConsumers=true";
     private static final String VALID_FLIGHTDATA_MULTIPLE_CONSUMERS = "seda:flightdata?multipleConsumers=true";
 
-    private final DataSourceProvider dataSourceProvider;
     private final MqttConfig mqttConfig;
 
-    public MqttRoutes(
-            DataSourceProvider dataSourceProvider,
-            MqttConfig mqttConfig
-    ) {
-        this.dataSourceProvider = dataSourceProvider;
+    public MqttRoutes(MqttConfig mqttConfig) {
         this.mqttConfig = mqttConfig;
     }
 
     @Override
     public void configure() {
-        DataSource dataSource = dataSourceProvider.setupDataSource();
-        bindToRegistry("datacollectorStore", dataSource);
-
         String mqttConnectionString = getMqttConnectionString();
         LOG.info("-------MQTT------------");
         LOG.info("Connection string: {}", mqttConnectionString);
@@ -62,7 +53,7 @@ public class MqttRoutes extends RouteBuilder {
                 .aggregate(constant(true), new BatchStrategy(exchange -> exchange.getMessage().getBody(String.class)))
                 .completionSize(DB_INSERT_MAX_BATCH_SIZE)
                 .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
-                .to("sql:insert into genericdata(username, datasource, type, rawdata) values ('" + mqttUsername + "', 'MQTT', :#topic, :#message::jsonb)?dataSource=#datacollectorStore&batch=true");
+                .to("sql:insert into genericdata(username, datasource, type, rawdata) values ('" + mqttUsername + "', 'MQTT', :#topic, :#message::jsonb)?batch=true");
 
         // Use MQTTSTREAM_MULTIPLE_CONSUMERS stream
         // -> filter for MQTT topic FLIGHTDATA_SBS_TOPIC
@@ -93,7 +84,7 @@ public class MqttRoutes extends RouteBuilder {
                 .completionSize(DB_INSERT_MAX_BATCH_SIZE)
                 .completionTimeout(DB_INSERT_MAX_BATCH_INTERVALL)
                 .log(">>> ${header.topic} ${header.rawdata}")
-                .to("sql:insert into flightdata(username, topic, rawdata) values ('" + mqttUsername + "', :#topic, :#message::jsonb)?dataSource=#datacollectorStore&batch=true");
+                .to("sql:insert into flightdata(username, topic, rawdata) values ('" + mqttUsername + "', :#topic, :#message::jsonb)?batch=true");
 
         // Expose REST API that returns last 100 elements from flightdata table
         rest("/api")
@@ -102,7 +93,7 @@ public class MqttRoutes extends RouteBuilder {
                 .route()
                 .routeId("[Route: REST test]")
                 .setBody(simple("select id, topic, rawdata#>>'{}' as rawdata, timestamp from flightdata order by timestamp desc limit 100"))
-                .to("jdbc:datacollectorStore")
+                .to("jdbc:default")
                 .marshal()
                 .json()
                 .log(">>> ${body}");
@@ -114,10 +105,10 @@ public class MqttRoutes extends RouteBuilder {
                 .routeId("[Route: REST SBS]")
                 .process(new SbsRestParameterExtractor())
                 .choice()
-                    .when(header("aggregate").isEqualTo(Boolean.TRUE))
-                    .to("sql:select id, timestamp, rawdata::text as rawdata from flightdata where timestamp >= :#ts order by timestamp desc limit :#limit")
+                .when(header("aggregate").isEqualTo(Boolean.TRUE))
+                .to("sql:select id, timestamp, rawdata::text as rawdata from flightdata where timestamp >= :#ts order by timestamp desc limit :#limit")
                 .otherwise()
-                    .to("sql:select id, timestamp, rawdata::text as rawdata from genericdata where datasource='MQTT' AND timestamp >= :#ts order by timestamp desc limit :#limit")
+                .to("sql:select id, timestamp, rawdata::text as rawdata from genericdata where datasource='MQTT' AND timestamp >= :#ts order by timestamp desc limit :#limit")
                 .end()
                 .marshal()
                 .json()
@@ -140,7 +131,7 @@ public class MqttRoutes extends RouteBuilder {
                 .routeId("[Route: Swagger]")
                 .to("rest-api:basePath");
 
-        ((WebsocketComponent)getContext().getComponent("websocket")).setMaxThreads(5);
+        ((WebsocketComponent) getContext().getComponent("websocket")).setMaxThreads(5);
 
         // Use MQTTSTREAM_MULTIPLE_CONSUMERS stream
         // -> Filter for MQTT topic FLIGHTDATA_SBS_TOPIC
