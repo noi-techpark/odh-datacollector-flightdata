@@ -4,10 +4,8 @@ services:
   mosquitto:
     image: eclipse-mosquitto:2.0.12
     ports:
-      - "${EXPOSED_MQTT_PORT}:${INTERNAL_MQTT_PORT}"
-    volumes:
-      - "${MOSQUITTO_CONF-./docker/mosquitto/mosquitto.conf}:/mosquitto/config/mosquitto.conf:ro"
-      - "${MOSQUITTO_INCLUDE_DIR-./docker/mosquitto/conf.d}:/mosquitto/config/conf.d:ro"
+      - "${EXPOSED_MQTT_PORT}:1883"
+    command: "mosquitto -c /mosquitto-no-auth.conf"
   postgres:
     image: postgres:13.4
     ports:
