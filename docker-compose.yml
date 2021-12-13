@@ -11,9 +11,9 @@ services:
     ports:
       - "${EXPOSED_POSTGRES_PORT}:5432"
     environment:
-      - "POSTGRES_DB=${POSTGRES_DB:?}"
-      - "POSTGRES_USER=${POSTGRES_USER:?}"
-      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?}"
+      - "POSTGRES_DB=${POSTGRES_DB}"
+      - "POSTGRES_USER=${POSTGRES_USER}"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
   datacollector:
     image: maven:3.8.3-jdk-11
     ports:
@@ -23,12 +23,11 @@ services:
       - "./:/datacollector"
       - "./.maven:/root/.m2"
     environment:
-      - "DATACOLLECTOR_MQTT_URL=${DATACOLLECTOR_MQTT_URL:?}"
-      - "DATACOLLECTOR_MQTT_USER=${DATACOLLECTOR_MQTT_USER}"
-      - "DATACOLLECTOR_MQTT_PASS=${DATACOLLECTOR_MQTT_PASS}"
-      - "DATABASE_URL=${POSTGRES_JDBC_URL:?}"
-      - "DATABASE_NAME=${POSTGRES_DB:?}"
-      - "DATABASE_USER=${POSTGRES_USER:?}"
-      - "DATABASE_PASS=${POSTGRES_PASSWORD:?}"
+      - "MQTT_URL=${MQTT_URL}"
+      - "MQTT_USER=${MQTT_USER}"
+      - "MQTT_PASSWORD=${MQTT_PASSWORD}"
+      - "POSTGRES_URL=${POSTGRES_URL}"
+      - "POSTGRES_USER=${POSTGRES_USER}"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
     working_dir: "/datacollector"
     command: "${DATACOLLECTOR_CONTAINER_START_COMMAND:-mvn compile quarkus:dev}"

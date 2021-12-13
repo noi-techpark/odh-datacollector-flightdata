@@ -116,9 +116,9 @@ The password file defines one example user `user1` and its hashed password `pass
 >
 > Use the script `mosquitto-docker-local-update-passwordfile.sh` located inside the `scripts` folder to hash the passwords of a plain-text password file in place. Take a look at `mosquitto-docker-local-update-passwordfile.sh` description in the [Scripts](#scripts) section for more information. **Attention**: the script does not check if the passwords are already hashed. If you apply the script several times to a password file, each time the passwords will be rehashed in place, rendering them useless.
 
-Since MQTT is now password protected, the `datacollector` must also authenticate against the MQTT in order to be able to subscribe to topics. Set the `DATACOLLECTOR_MQTT_USER` and `DATACOLLECTOR_MQTT_PASS` environment variables (e.g. in your `.env` file) to a user/password combination that is defined by your password file. If you use the provided `env-with-auth.example` file you will see, that `DATACOLLECTOR_MQTT_USER` is set to `user1` and `DATACOLLECTOR_MQTT_PASS` is set to `password1`, which are the values defined in the password file and were mentioned above.
+Since MQTT is now password protected, the `datacollector` must also authenticate against the MQTT in order to be able to subscribe to topics. Set the `MQTT_USER` and `MQTT_PASSWORD` environment variables (e.g. in your `.env` file) to a user/password combination that is defined by your password file. If you use the provided `env-with-auth.example` file you will see, that `MQTT_USER` is set to `user1` and `MQTT_PASSWORD` is set to `password1`, which are the values defined in the password file and were mentioned above.
 
-From here on, your MQTT instance has authentication enabled and your datacollector is configured with the according credentials. Modify the password file as you want, but please keep in mind that a valid user / password combination must be defined for `DATACOLLECTOR_MQTT_USER` and `DATACOLLECTOR_MQTT_PASS`.
+From here on, your MQTT instance has authentication enabled and your datacollector is configured with the according credentials. Modify the password file as you want, but please keep in mind that a valid user / password combination must be defined for `MQTT_USER` and `MQTT_PASSWORD`.
 
 ### Further MQTT configuration
 
