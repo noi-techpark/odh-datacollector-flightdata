@@ -10,8 +10,6 @@ services:
     image: postgres:13.4
     ports:
       - "${EXPOSED_POSTGRES_PORT}:5432"
-    volumes:
-      - "./docker/postgres/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro"
     environment:
       - "POSTGRES_DB=${POSTGRES_DB:?}"
       - "POSTGRES_USER=${POSTGRES_USER:?}"
