@@ -8,10 +8,10 @@ pipeline {
 
         SERVER_PORT = "1000"
 
-        POSTGRES_URL = "jdbc:postgresql://postgres-prod.co90ybcr8iim.eu-west-1.rds.amazonaws.com:5432/project"
+        POSTGRES_URL = "jdbc:postgresql://postgres-prod.co90ybcr8iim.eu-west-1.rds.amazonaws.com:5432/flightdata"
         POSTGRES_USER = credentials('odh-datacollector-flightdata-prod-postgres-username')
         POSTGRES_PASSWORD = credentials('odh-datacollector-flightdata-prod-postgres-password')
-        
+
         MQTT_URL = "tcp://odh-mosquitto:1883"
         MQTT_USER = credentials('odh-datacollector-flightdata-test-mqtt-username')
         MQTT_PASSWORD = credentials('odh-datacollector-flightdata-test-mqtt-username')
