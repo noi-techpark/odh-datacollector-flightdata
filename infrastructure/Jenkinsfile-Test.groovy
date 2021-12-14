@@ -15,6 +15,9 @@ pipeline {
         MQTT_URL = "tcp://odh-mosquitto:1883"
         MQTT_USER = credentials('odh-datacollector-flightdata-test-mqtt-username')
         MQTT_PASSWORD = credentials('odh-datacollector-flightdata-test-mqtt-username')
+
+        EXPOSED_DATACOLLECTOR_REST_PORT = "8080"
+        EXPOSED_DATACOLLECTOR_WEBSOCKET_PORT = "8081"
     }
 
     stages {
@@ -36,6 +39,9 @@ pipeline {
                     echo 'MQTT_URL=${MQTT_URL}' >> .env
                     echo 'MQTT_USER=${MQTT_USER}' >> .env
                     echo 'MQTT_PASSWORD=${MQTT_PASSWORD}' >> .env
+
+                    echo 'EXPOSED_DATACOLLECTOR_REST_PORT=${EXPOSED_DATACOLLECTOR_REST_PORT}' >> .env
+                    echo 'EXPOSED_DATACOLLECTOR_WEBSOCKET_PORT=${EXPOSED_DATACOLLECTOR_WEBSOCKET_PORT}' >> .env
                 """
             }
         }
