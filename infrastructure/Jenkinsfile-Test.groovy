@@ -8,7 +8,7 @@ pipeline {
 
         SERVER_PORT = "1000"
 
-        POSTGRES_URL = "jdbc:postgresql://test-pg-bdp.co90ybcr8iim.eu-west-1.rds.amazonaws.com:5432/project"
+        POSTGRES_URL = "jdbc:postgresql://test-pg-bdp.co90ybcr8iim.eu-west-1.rds.amazonaws.com:5432/flightdata"
         POSTGRES_USER = credentials('odh-datacollector-flightdata-test-postgres-username')
         POSTGRES_PASSWORD = credentials('odh-datacollector-flightdata-test-postgres-password')
         
