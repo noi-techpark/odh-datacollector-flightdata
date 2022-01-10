@@ -2,30 +2,15 @@
 
 This project contains sources and tools to record flight data via [MQTT](https://mqtt.org/) and to store it in a [PostgreSQL](https://www.postgresql.org/) database.
 
-**Table of Contents**
+## Table of Contents
 
-- [Flightdata](#flightdata)
-  - [General architecture](#general-architecture)
-  - [Getting started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installing](#installing)
-  - [Configuration](#configuration)
-    - [Environment variables](#environment-variables)
-    - [MQTT authentication](#mqtt-authentication)
-    - [Further MQTT configuration](#further-mqtt-configuration)
-  - [Development](#development)
-  - [Scripts](#scripts)
-    - [mosquitto-docker-local-pub.sh](#mosquitto-docker-local-pubsh)
-    - [mosquitto-docker-local-sub.sh](#mosquitto-docker-local-subsh)
-    - [mosquitto-docker-sub-to-official-test-server.sh](#mosquitto-docker-sub-to-official-test-serversh)
-    - [mosquitto-docker-local-update-passwordfile.sh](#mosquitto-docker-local-update-passwordfilesh)
-    - [mosquitto-docker-local-reload-config.sh](#mosquitto-docker-local-reload-configsh)
-  - [Information](#information)
-    - [Support](#support)
-    - [Contributing](#contributing)
-    - [Versioning](#versioning)
-    - [License](#license)
-    - [Authors](#authors)
+- [General architecture](#general-architecture)
+- [Getting started](#getting-started)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Scripts](#scripts)
+- [Information](#information)
+
 ## General architecture
 
 - a [mosquitto](https://mosquitto.org/) instance listens for sensor data, the MQTT protocol is used
@@ -82,16 +67,16 @@ Docker Compose should now start three containers:
 
 > Note that the first launch may take some time, because the Docker images must be pulled and the `datacollector` container has to download all necessary Maven dependencies.
 
-To subscribe to all topics on the running `mosquitto` instance, use the script `mosquitto-docker-local-sub.sh` located inside the `infrastructure/utils` folder:
+To subscribe to all topics on the running `mosquitto` instance, use the script `mosquitto-docker-local-sub.sh` located inside the `scripts` folder:
 
 ```bash
-./infrastructure/utils/mosquitto-docker-local-sub.sh
+./scripts/mosquitto-docker-local-sub.sh
 ```
 
-To publish a message to the `flightdata` topic on the `mosquitto` instance, use the script `mosquitto-docker-local-pub.sh` located inside the `infrastructure/utils` folder. This script takes the message payload as its argument. Please be sure to provide **valid JSON** as payload, because PostgreSQL expects JSON as payload using its `JSONB` datatype:
+To publish a message to the `flightdata` topic on the `mosquitto` instance, use the script `mosquitto-docker-local-pub.sh` located inside the `scripts` folder. This script takes the message payload as its argument. Please be sure to provide **valid JSON** as payload, because PostgreSQL expects JSON as payload using its `JSONB` datatype:
 
 ```bash
-./infrastructure/utils/mosquitto-docker-local-pub.sh '{"text": "Hello World!"}'
+./scripts/mosquitto-docker-local-pub.sh '{"text": "Hello World!"}'
 ```
 
 Data that is published to the MQTT broker should now be stored in the PostgreSQL instance. Use any database client you want to interact with PostgreSQL.
@@ -129,7 +114,7 @@ The password file defines one example user `user1` and its hashed password `pass
 
 > Hint: [https://mosquitto.org/documentation/authentication-methods/](https://mosquitto.org/documentation/authentication-methods/) provides more information about the password file specification and tooling.
 >
-> Use the script `mosquitto-docker-local-update-passwordfile.sh` located inside the `infrastructure/utils` folder to hash the passwords of a plain-text password file in place. Take a look at `mosquitto-docker-local-update-passwordfile.sh` description in the [Scripts](#scripts) section for more information. **Attention**: the script does not check if the passwords are already hashed. If you apply the script several times to a password file, each time the passwords will be rehashed in place, rendering them useless.
+> Use the script `mosquitto-docker-local-update-passwordfile.sh` located inside the `scripts` folder to hash the passwords of a plain-text password file in place. Take a look at `mosquitto-docker-local-update-passwordfile.sh` description in the [Scripts](#scripts) section for more information. **Attention**: the script does not check if the passwords are already hashed. If you apply the script several times to a password file, each time the passwords will be rehashed in place, rendering them useless.
 
 Since MQTT is now password protected, the `datacollector` must also authenticate against the MQTT in order to be able to subscribe to topics. Set the `MQTT_USER` and `MQTT_PASSWORD` environment variables (e.g. in your `.env` file) to a user/password combination that is defined by your password file. If you use the provided `env-with-auth.example` file you will see, that `MQTT_USER` is set to `user1` and `MQTT_PASSWORD` is set to `password1`, which are the values defined in the password file and were mentioned above.
 
@@ -167,25 +152,25 @@ This section provides an overview of the available scripts that come with this p
 
 ### mosquitto-docker-local-pub.sh
 
-The script [mosquitto-docker-local-pub.sh](./infrastructure/utils/mosquitto-docker-local-pub.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto_pub` that can be used to publish messages to a local MQTT broker. The script expects one argument which is the payload. The payload is then published to the local MQTT broker on topic `test/topic`.
+The script [mosquitto-docker-local-pub.sh](./scripts/mosquitto-docker-local-pub.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto_pub` that can be used to publish messages to a local MQTT broker. The script expects one argument which is the payload. The payload is then published to the local MQTT broker on topic `test/topic`.
 
 > Hint: Use [mosquitto-docker-local-start.sh](#mosquitto-docker-local-start.sh) to start a local MQTT broker.
 
 ### mosquitto-docker-local-sub.sh
 
-The script [mosquitto-docker-local-sub.sh](./infrastructure/utils/mosquitto-docker-local-sub.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto_pub` that can be used to subscribe to a local MQTT broker on all topics.
+The script [mosquitto-docker-local-sub.sh](./scripts/mosquitto-docker-local-sub.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto_pub` that can be used to subscribe to a local MQTT broker on all topics.
 
 > Hint: Use [mosquitto-docker-local-start.sh](#mosquitto-docker-local-start.sh) to start a local MQTT broker.
 
 ### mosquitto-docker-sub-to-official-test-server.sh
 
-The script [mosquitto-docker-sub-to-official-test-server.sh](./infrastructure/utils/mosquitto-docker-sub-to-official-test-server.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto-sub-test.mosquitto.org` that subscribes to all topics on the server `test.mosquitto.org`. No ports are exposed. The output is written to stdout.
+The script [mosquitto-docker-sub-to-official-test-server.sh](./scripts/mosquitto-docker-sub-to-official-test-server.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto-sub-test.mosquitto.org` that subscribes to all topics on the server `test.mosquitto.org`. No ports are exposed. The output is written to stdout.
 
 The reason for the script to exist is that it provides an easy start point to play around with MQTT. The MQTT broker at `test.mosquitto.org` should be online and pusblish data 24 / 7.
 
 ### mosquitto-docker-local-update-passwordfile.sh
 
-The script [mosquitto-docker-local-update-passwordfile.sh](./infrastructure/utils/mosquitto-docker-local-update-passwordfile.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto-update-password`. The script uses `mosquitto_passwd` under the hood to hash the passwords of the provided password file in place. The script expects the fully qualified path to the password file as parameter.
+The script [mosquitto-docker-local-update-passwordfile.sh](./scripts/mosquitto-docker-local-update-passwordfile.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto-update-password`. The script uses `mosquitto_passwd` under the hood to hash the passwords of the provided password file in place. The script expects the fully qualified path to the password file as parameter.
 
 **Attention**: the script does not check if the passwords are already hashed. If you apply the script several times to a password file, each time the passwords will be rehashed, rendering them useless.
 
@@ -225,7 +210,7 @@ This project uses [SemVer](https://semver.org/) for versioning. For the versions
 
 ### License
 
-The code in this project is licensed. See the LICENSE file for more information.
+The code in this project is licensed under the MIT license. See the LICENSE file for more information.
 
 ### Authors
 
