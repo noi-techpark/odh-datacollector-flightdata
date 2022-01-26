@@ -1,4 +1,4 @@
-package it.bz.opendatahub.datacollector.flightdata;
+package it.bz.opendatahub.datacollector.flightdata.flightdata;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,6 +16,7 @@ public class Flightdata {
     //    - CA                  int         # Lowest 3 bits of first byte of Mode S message (DF11 and DF17 capability; DF18 control field, zero for all other DF types)
     //    - TypeCode            int         # Mode S type code
     //    - SubtypeCode         int         # Mode S subtype code
+    //    - SBS_MsgType         int         # type of SBS message (used in "old" 1090 parsing)
     //    - SBS_MsgType         int         # type of SBS message (used in "old" 1090 parsing)
     //    - SignalLevel         float64     # Decimal RSSI (0-1 nominal) as reported by dump1090-mutability. Convert to dB RSSI before setting in TrafficInfo.
     //    - Tail                *string     # Callsign. Transmitted by aircraft.

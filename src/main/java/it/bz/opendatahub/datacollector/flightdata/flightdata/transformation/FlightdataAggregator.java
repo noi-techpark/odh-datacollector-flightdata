@@ -1,5 +1,6 @@
-package it.bz.opendatahub.datacollector.flightdata;
+package it.bz.opendatahub.datacollector.flightdata.flightdata.transformation;
 
+import it.bz.opendatahub.datacollector.flightdata.flightdata.Flightdata;
 import org.apache.camel.AggregationStrategy;
 import org.apache.camel.Exchange;
 
@@ -11,13 +12,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Aggregate {@link Flightdata} (SBS as JSON) into valid flightdata.
- *
+ * <p>
  * Each incoming flightdata contains only part of the information that is necessary to display e.g. an aircraft
  * on a map. One instance may contain the altitude, another one the speed.
- *
+ * <p>
  * Therefore, the data must be aggregated, which is done by this implementation.
  */
-public class FlightdataAggregation implements AggregationStrategy {
+public class FlightdataAggregator implements AggregationStrategy {
 
     private final Map<Integer, Flightdata> flightdataIndex = new ConcurrentHashMap<>();
 

@@ -1,4 +1,4 @@
-package it.bz.opendatahub.datacollector.flightdata;
+package it.bz.opendatahub.datacollector.flightdata.mqtt;
 
 import io.smallrye.config.ConfigMapping;
 
@@ -11,13 +11,17 @@ import java.util.Optional;
  * .env file and more. Take a look at https://quarkus.io/guides/config-reference
  * to see how it works.
  */
-@ConfigMapping(prefix = "datacollector.mqtt")
+@ConfigMapping(prefix = "mqtt")
 public interface MqttConfig {
     String url();
+
+    // Topic to collect SBS flightdata from
+    String flightdataTopic();
 
     // Username is optional and may not be set
     Optional<String> user();
 
     // Password is optional and may not be set
     Optional<String> pass();
+
 }

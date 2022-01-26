@@ -1,53 +1,55 @@
-# Flightdata
+# ODH Datacollector for flightdata
 
-This project contains sources and tools to record flight data via [MQTT](https://mqtt.org/) and to store it in a [PostgreSQL](https://www.postgresql.org/) database.
+This project provides an [Open Data Hub](https://opendatahub.bz.it/) datacollector to record [MQTT](https://mqtt.org/) messages and to store it in a [PostgreSQL](https://www.postgresql.org/) database.
 
 ## Table of Contents
 
 - [General architecture](#general-architecture)
 - [Getting started](#getting-started)
-- [Configuration](#configuration)
+  - [Prerequisites](#prerequisites)
+  - [Source code](#source-code)
+  - [Execute with Docker](#execute-with-docker)
 - [Development](#development)
-- [Scripts](#scripts)
+- [FAQ](#faq)
 - [Information](#information)
 
 ## General architecture
 
-- a [mosquitto](https://mosquitto.org/) instance listens for sensor data, the MQTT protocol is used
-- a [Apache Camel](https://camel.apache.org/) instance listens for data on mosquitto and writes it into PostgreSQL. In addition, this instance provides a simple REST endpoint at path `/api` that can be used to read the data stored in PostgreSQL (experimental)
-- a [PostgreSQL](https://www.postgresql.org/) instance where data is written to by Apache Camel
+- MQTT: a [mosquitto](https://mosquitto.org/) instance listens for sensor data
+- Datacollector: an [Apache Camel](https://camel.apache.org/) instance that listens for data on mosquitto and writes it into PostgreSQL
+- Store: [PostgreSQL](https://www.postgresql.org/) instance where data is written to by Apache Camel
+
+![Architecture](./architecture.jpg)
 
 ## Getting started
 
-These instructions will get you a copy of this mono repository and prepare it for development. Please be aware that the provided implementation and configuration is yet not suitable for productive deployment (work in progress).
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
 ### Prerequisites
 
-The project supports [Docker Compose](https://docs.docker.com/compose/) and provides a `docker-compose.yml` that can be used to start all required parts of the application.
-
 To build the projects in the repository, the following prerequisites must be met:
 
-- Docker
-- Docker Compose
+- [Docker](https://www.docker.com/)
+- [Docker Compose](https://docs.docker.com/compose/)
 - Java JDK 11 or higher (e.g. [OpenJDK](https://openjdk.java.net/)) and [Maven](https://maven.apache.org/) 3.x if you want to build and launch the integration pipeline based on Apache Camel locally (not strictly necessary but nice to have for development)
 
-### Installing
+### Source code
 
-Get a copy of the repository, e.g. by cloning it from the following location:
+Get a copy of the repository:
 
 ```bash
-git clone https://github.com/gappc/noi-flightdata.git
+git clone https://github.com/noi-techpark/odh-broker-mqtt.git
 ```
 
 Change directory:
 
 ```bash
-cd noi-flightdata/
+cd odh-broker-mqtt/
 ```
 
-Make a copy of the `env.example` file named `.env`. The `.env` file contains the configuration and can be adjusted by your needs:
+### Execute with Docker
 
-> Note: the configuration in `env.example` allows anonymous MQTT access. If you want to enable MQTT authentication, use the file `env-with-auth.example` instead and refer to the [MQTT authentication](#mqtt-authentication) for further information.
+Copy the file `.env.example` to `.env` and adjust the configuration parameters.
 
 ```bash
 cp env.example .env
@@ -65,70 +67,15 @@ Docker Compose should now start three containers:
 - postgres (Database)
 - datacollector (Apache Camel)
 
-> Note that the first launch may take some time, because the Docker images must be pulled and the `datacollector` container has to download all necessary Maven dependencies.
+The first launch may take some time, because the Docker images must be pulled and the `datacollector` container has to download all necessary Maven dependencies.
 
-To subscribe to all topics on the running `mosquitto` instance, use the script `mosquitto-docker-local-sub.sh` located inside the `scripts` folder:
-
-```bash
-./scripts/mosquitto-docker-local-sub.sh
-```
-
-To publish a message to the `flightdata` topic on the `mosquitto` instance, use the script `mosquitto-docker-local-pub.sh` located inside the `scripts` folder. This script takes the message payload as its argument. Please be sure to provide **valid JSON** as payload, because PostgreSQL expects JSON as payload using its `JSONB` datatype:
-
-```bash
-./scripts/mosquitto-docker-local-pub.sh '{"text": "Hello World!"}'
-```
-
-Data that is published to the MQTT broker should now be stored in the PostgreSQL instance. Use any database client you want to interact with PostgreSQL.
-
-The `datacollector` container provides also a simple REST endpoint to read the data stored in PostgreSQL. You can access it at port 8080 using the path `/api`, e.g. [http://localhost:8080/api](http://localhost:8080/api).
-
-> Note that the `/api` endpoint returns at most 100 results only.
-
-## Configuration
-
-### Environment variables
-
-If you use `docker-compose` you can configure MQTT and PostgreSQL properties using environment variables. The environment variables may also be provided by a `.env` file.
-
-The project provides two environment example files that can be used as base configuration:
-
-- copy the [env.example](./env.example) file to `.env` to use MQTT without authentication
-- copy the [env-with-auth.example](./env-with-auth.example) file to `.env` to use MQTT with authentication
-
-A description of the environment variables can be found in the example files mentioned above.
-
-### MQTT authentication
-
-This README.md mostly describes a project usage where MQTT allows anonymous access. This is fine for development purpose, but should not be done in production environments. That's why the project can also be configured with MQTT authentication enabled.
-
-If you take a look at [env-with-auth.example](./env-with-auth.example) you will find an environment configuration that enables MQTT authentication. Copy that file to `.env` to use it as base for your own configuration with MQTT authentication enabled:
-
-```bash
-cp env-with-auth.example .env
-```
-
-The environment configuration defines [mosquitto-with-auth.conf](./docker/mosquitto/mosquitto-with-auth.conf) to be used as mosquitto config file using the `MOSQUITTO_CONF` environment variable. This mosquitto config contains a property `password_file` that references the password file [passwordfile.example](./docker/mosquitto/conf.d/passwordfile.example) as it is mounted inside the docker container (take a look at the [docker-compose.yml](./docker-compose.yml) file to see how the mount points are defined).
-
-The password file defines one example user `user1` and its hashed password `password1`
-
-> Hint: [https://mosquitto.org/documentation/authentication-methods/](https://mosquitto.org/documentation/authentication-methods/) provides more information about the password file specification and tooling.
->
-> Use the script `mosquitto-docker-local-update-passwordfile.sh` located inside the `scripts` folder to hash the passwords of a plain-text password file in place. Take a look at `mosquitto-docker-local-update-passwordfile.sh` description in the [Scripts](#scripts) section for more information. **Attention**: the script does not check if the passwords are already hashed. If you apply the script several times to a password file, each time the passwords will be rehashed in place, rendering them useless.
-
-Since MQTT is now password protected, the `datacollector` must also authenticate against the MQTT in order to be able to subscribe to topics. Set the `MQTT_USER` and `MQTT_PASSWORD` environment variables (e.g. in your `.env` file) to a user/password combination that is defined by your password file. If you use the provided `env-with-auth.example` file you will see, that `MQTT_USER` is set to `user1` and `MQTT_PASSWORD` is set to `password1`, which are the values defined in the password file and were mentioned above.
-
-From here on, your MQTT instance has authentication enabled and your datacollector is configured with the according credentials. Modify the password file as you want, but please keep in mind that a valid user / password combination must be defined for `MQTT_USER` and `MQTT_PASSWORD`.
-
-### Further MQTT configuration
-
-You can configure the MQTT further by adjusting the mosquitto config file that is mounted by `docker-compose`. Set the `MOSQUITTO_CONF` environment variable to define which mosquitto config file to use.
+> Note, that you don't have to start mosquitto and postgres from this project together with the datacollector. For example, if you already have a MQTT broker you can connect to and maybe also a PostgreSQL database for storage, you could just start the datacollector using `docker-compose up datacollector`. 
 
 ## Development
 
-For development purpose, you can start any of the Docker Compose containers individually, e.g. `docker-compose up mosquitto`.
+For development purpose, you can start any of the Docker Compose containers individually, e.g. `docker-compose up mosquitto` starts just mosquitto.
 
-Usually you want to work on the `datacollector`. The datacollector reads from a MQTT broker (mosquitto) and writes to a PostgreSQL database. A common setup for development is therefor to launch mosquitto and PostgreSQL in their respective Docker containers and to start on `datacollector` locally. This way you can e.g. easily debug the datacollector. To get the described setup, follow the steps below.
+Usually you want to work on the `datacollector`. The datacollector reads from a MQTT broker (mosquitto) and writes to a PostgreSQL database. A common setup for development is therefore to launch mosquitto and PostgreSQL in their respective Docker containers and to start `datacollector` locally. This way you can e.g. easily debug the datacollector. To get the described setup, follow the steps below.
 
 Start `mosquitto` and `postgres` containers using docker-compose:
 
@@ -139,70 +86,117 @@ docker-compose up mosquitto postgres
 Run the datacollector locally in dev mode (please note that you need to have Java 11 and Maven 3.x installed):
 
 ```bash
-mvn -f ./datacollector/pom.xml compile quarkus:dev
+mvn compile quarkus:dev
 ```
 
 This should get you started with development.
 
 > Note that you don't have to start the `datacollector` locally for development. You can start it as container together with the other containers with `docker-compose up` as described in the [Installing](#installing) section. The only drawback is, that it is not that easy to attach a debugger to the datacollector inside the Docker container.
 
-## Scripts
+## FAQ
 
-This section provides an overview of the available scripts that come with this project.
+### I get an error `function gen_random_uuid() does not exist` from Flybase migration
 
-### mosquitto-docker-local-pub.sh
+The tables defined in this project use UUID values as primary keys. Those keys are auto-generated with the Postgres `gen_random_uuid()` function. If that function does not exist, you'll probably see a `function gen_random_uuid() does not exist` error when you try to start up the datacollector.   
 
-The script [mosquitto-docker-local-pub.sh](./scripts/mosquitto-docker-local-pub.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto_pub` that can be used to publish messages to a local MQTT broker. The script expects one argument which is the payload. The payload is then published to the local MQTT broker on topic `test/topic`.
+To solve that issue, please use a Postgres version >= 13 or enable the `pgcrypto` extension using the following command:
 
-> Hint: Use [mosquitto-docker-local-start.sh](#mosquitto-docker-local-start.sh) to start a local MQTT broker.
-
-### mosquitto-docker-local-sub.sh
-
-The script [mosquitto-docker-local-sub.sh](./scripts/mosquitto-docker-local-sub.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto_pub` that can be used to subscribe to a local MQTT broker on all topics.
-
-> Hint: Use [mosquitto-docker-local-start.sh](#mosquitto-docker-local-start.sh) to start a local MQTT broker.
-
-### mosquitto-docker-sub-to-official-test-server.sh
-
-The script [mosquitto-docker-sub-to-official-test-server.sh](./scripts/mosquitto-docker-sub-to-official-test-server.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto-sub-test.mosquitto.org` that subscribes to all topics on the server `test.mosquitto.org`. No ports are exposed. The output is written to stdout.
-
-The reason for the script to exist is that it provides an easy start point to play around with MQTT. The MQTT broker at `test.mosquitto.org` should be online and pusblish data 24 / 7.
-
-### mosquitto-docker-local-update-passwordfile.sh
-
-The script [mosquitto-docker-local-update-passwordfile.sh](./scripts/mosquitto-docker-local-update-passwordfile.sh) uses the official Docker image [eclipse-mosquitto](https://hub.docker.com/_/eclipse-mosquitto/) to start a local Docker container named `mosquitto-update-password`. The script uses `mosquitto_passwd` under the hood to hash the passwords of the provided password file in place. The script expects the fully qualified path to the password file as parameter.
-
-**Attention**: the script does not check if the passwords are already hashed. If you apply the script several times to a password file, each time the passwords will be rehashed, rendering them useless.
-
-Below you find an example contents of a plain-text password file whose passwords are hashed by the script:
-
-```text
-user1:password1
+```sql
+CREATE EXTENSION pgcrypto;
 ```
 
-> Note: the password file may contain several users, each one on a new line.
+### What kind of data am I allowed to publish?
 
-When you apply the script to that file, its outcome may look as follows:
+The datacollector expects valid JSON to be published. All other kinds of data will not be persisted.
 
-```text
-user1:$7$101$cNdSny7311rTLYeB$SSRWvaddDft6AnqSEtwfNoIQRVMOL2vlkPJWmlHMSYwbRQF4HZenS/CZO2H8K6tKl8tXDnJmPLaIVHLGfR+7YA==
+### How can I check if publishing succeeded?
+
+In general, if you want to know if publishing to a topic succeeded, subscribe to that topic. All of your published messages should show up in your subscription.
+
+For topics that need authentication, this is not always true. You may be allowed to subscribe to a topic as anonymous, but due to access control restrictions on that topic you may not see your published messages. You may even not notice that publishing did not succeed when you are not allowed to.
+
+If in doubt, please first double check that you use the correct topic and credentials (where necessary). If you still have troubles, please contact our [support](#support).
+
+### My data seems to not be stored at all. What are possible reasons?
+
+- the message you provide to the MQTT broker is not valid JSON
+- you don't have the permission to publish to a certain topic
+- The datacollector is not available which you will not detect when you publish a message to MQTT
+
+### How do I publish / subscribe to the MQTT broker?
+
+You can use any MQTT client you want to publish messages to the MQTT broker, e.g. [MQTT Explorer](http://mqtt-explorer.com/) or [MQTTX](https://mqttx.app/). 
+
+You can also use the mosquitto publish / subscribe features provided by mosquitto. Using the Docker version of mosquitto, you can publish a message to topic `/open/test` on localhost using the following command:
+
+```bash
+# Publish the message "some" (= valid JSON string) to the topic /open/test using the MQTT instance on localhost
+# Please make sure that you correctly escape the double ticks in the message in order to provide valid JSON. 
+
+docker run -it --rm --name mosquitto-pub --network="host" eclipse-mosquitto:2.0.12 sh -c "mosquitto_pub -t '/open/test' -h localhost -m '\"some\"'"
 ```
 
-You can see that the password was hashed. This file is now a valid `mosquitto` password file.
+Use the following command to subscribe to the topic `/open/test` on localhost:
 
-### mosquitto-docker-local-reload-config.sh
+```bash
+# Subscribe to the topic /open/test using the MQTT instance on localhost
 
-This script triggers a mosquitto instance running in a Docker container named `noi-flightdata_mosquitto_1` (as it is the case when the Docker containers are started with `docker-compose`) to reload its configuration. This way, configuration changes become effective without restarting mosquitto (during a restart no messages can be received).
+docker run -it --rm --name mosquitto-sub --network="host" eclipse-mosquitto:2.0.12 sh -c "mosquitto_sub -t '/open/test' -h localhost"
+```
+
+### How can I read the stored data?
+
+You can read the data directly from the PostgreSQL database. 
+
+As a **temporary** alternative, the project provides REST and Websocket endpoints that you can use to read the data. **Please note that those endpoints will be removed in future versions, so don't rely on them or use them in production!**
+
+#### REST endpoints
+
+`/flightdata/sbs`: read stored flightdata
+
+Parameters:
+
+- aggregated, bool, default: FALSE
+  - TRUE returns only aggregated data 
+  - FALSE returns all data
+- ts, number, default: 1635724800000 (= '2021-11-01')
+  - set timestamp to return all data since this timestamp
+- limit, number, default: 1000, max: 1000
+  - set a limit of data records to be retrieved
+
+`/flightdata-scheduled`: read scheduled flightdata from the [Airport Bozen](https://www.bolzanoairport.it/de/)
+
+No parameters
+
+`/swagger`: the [Swagger](https://swagger.io/) definition of the REST endpoints
+
+No parameters
+
+#### Websocket endpoints
+
+`/flightdata/sbs`: raw flightdata
+
+`/flightdata/sbs-aggregated`: aggregated flightdata
 
 ## Information
 
 ### Support
 
-For support, please contact [Christian Gapp](https://github.com/gappc).
+For support, please contact [info@opendatahub.bz.it](mailto:info@opendatahub.bz.it.
 
 ### Contributing
 
-If you'd like to contribute, please fork the repository and use a feature branch. Pull requests are warmly welcome.
+If you'd like to contribute, please follow the following instructions:
+
+- Fork the repository.
+
+- Checkout a topic branch from the `development` branch.
+
+- Make sure the tests are passing.
+
+- Create a pull request against the `development` branch.
+
+A more detailed description can be found here: [https://github.com/noi-techpark/documentation/blob/master/contributors.md](https://github.com/noi-techpark/documentation/blob/master/contributors.md).
 
 ### Versioning
 
@@ -210,7 +204,7 @@ This project uses [SemVer](https://semver.org/) for versioning. For the versions
 
 ### License
 
-The code in this project is licensed under the MIT license. See the LICENSE file for more information.
+The code in this project is licensed under the GNU AFFERO GENERAL PUBLIC LICENSE Version 3 license. See the [LICENSE.md](LICENSE.md) file for more information.
 
 ### Authors
 

@@ -1,4 +1,4 @@
-package it.bz.opendatahub.datacollector.flightdata;
+package it.bz.opendatahub.datacollector.flightdata.utils;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.processor.aggregate.AbstractListAggregationStrategy;
