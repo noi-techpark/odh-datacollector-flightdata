@@ -1,12 +1,13 @@
-package it.bz.opendatahub.datacollector.flightdata;
+package it.bz.opendatahub.datacollector.flightdata.flightdata.transformation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.bz.opendatahub.datacollector.flightdata.flightdata.Flightdata;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 
 /**
  * Convert SBS as JSON into {@link Flightdata} objects that are easier to handle.
- *
+ * <p>
  * Set the converted objects as the message body and put the IcaoAddr as "flightDataId"
  * into the header.
  */
