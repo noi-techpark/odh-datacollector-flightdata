@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: odh-datacollector-flightdata
+Upstream-Contact: NOI Techpark <digital@noi.bz.it>
+Source: https://github.com/noi-techpark/odh-datacollector-flightdata
+
+Files: infrastructure/* .gitignore LICENSE architecture.jpg env.example mvnw mvnw.cmd *.properties src/main/resources/db/migration/* .mvn/*
+Copyright: (c) NOI Techpark <digital@noi.bz.it>
+License: CC0-1.0
