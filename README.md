@@ -6,7 +6,7 @@ SPDX-License-Identifier: CC0-1.0
 
 # ODH Datacollector for flightdata
 
-This project provides an [Open Data Hub](https://opendatahub.bz.it/) datacollector to record [MQTT](https://mqtt.org/) messages and to store it in a [PostgreSQL](https://www.postgresql.org/) database.
+This project provides an [Open Data Hub](https://opendatahub.com/) datacollector to record [MQTT](https://mqtt.org/) messages and to store it in a [PostgreSQL](https://www.postgresql.org/) database.
 
 ## Table of Contents
 
@@ -188,7 +188,7 @@ No parameters
 
 ### Support
 
-For support, please contact [info@opendatahub.bz.it](mailto:info@opendatahub.bz.it.
+For support, please contact [info@opendatahub.com](mailto:info@opendatahub.com.
 
 ### Contributing
 
